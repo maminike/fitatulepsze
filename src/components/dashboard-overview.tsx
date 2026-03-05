@@ -6,35 +6,27 @@ import { Activity, Droplets, Flame, Footprints } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MealEntrySheet } from "@/components/meal-entry-sheet";
 import { Progress } from "@/components/ui/progress";
+import { calculateProgressPercent, formatCalories, formatGrams } from "@/lib/format-utils";
 import { dailySummary, macroSummary, todayMeals } from "@/lib/mock-data";
+import { calculateCaloriesLeft, calculateNutritionTotals } from "@/lib/nutrition-utils";
 
 export function DashboardOverview() {
   const [meals, setMeals] = useState(todayMeals);
 
-  const consumedCalories = useMemo(() => {
-    return meals.reduce((sum, meal) => sum + meal.calories, 0);
-  }, [meals]);
-
-  const consumedProtein = useMemo(() => {
-    return meals.reduce((sum, meal) => sum + meal.protein, 0);
-  }, [meals]);
-
-  const consumedCarbs = useMemo(() => {
-    return meals.reduce((sum, meal) => sum + meal.carbs, 0);
-  }, [meals]);
-
-  const consumedFat = useMemo(() => {
-    return meals.reduce((sum, meal) => sum + meal.fat, 0);
-  }, [meals]);
+  const nutritionTotals = useMemo(() => calculateNutritionTotals(meals), [meals]);
 
   const macroConsumedMap = {
-    protein: consumedProtein,
-    carbs: consumedCarbs,
-    fat: consumedFat,
+    protein: nutritionTotals.protein,
+    carbs: nutritionTotals.carbs,
+    fat: nutritionTotals.fat,
   } as const;
 
-  const caloriesLeft = dailySummary.goal - consumedCalories + dailySummary.burned;
-  const progressValue = Math.min((consumedCalories / dailySummary.goal) * 100, 100);
+  const caloriesLeft = calculateCaloriesLeft(
+    dailySummary.goal,
+    nutritionTotals.calories,
+    dailySummary.burned,
+  );
+  const progressValue = calculateProgressPercent(nutritionTotals.calories, dailySummary.goal);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -48,7 +40,7 @@ export function DashboardOverview() {
         <CardContent className="space-y-4">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-3xl font-bold">{caloriesLeft} kcal</p>
+              <p className="text-3xl font-bold">{formatCalories(caloriesLeft)}</p>
               <p className="text-sm text-muted-foreground">Pozostalo na dzisiaj</p>
             </div>
             <MealEntrySheet
@@ -58,9 +50,9 @@ export function DashboardOverview() {
           </div>
           <Progress value={progressValue} />
           <div className="grid grid-cols-3 gap-3 text-sm">
-            <Stat label="Cel" value={`${dailySummary.goal} kcal`} />
-            <Stat label="Zjedzone" value={`${consumedCalories} kcal`} />
-            <Stat label="Spalone" value={`${dailySummary.burned} kcal`} />
+            <Stat label="Cel" value={formatCalories(dailySummary.goal)} />
+            <Stat label="Zjedzone" value={formatCalories(nutritionTotals.calories)} />
+            <Stat label="Spalone" value={formatCalories(dailySummary.burned)} />
           </div>
         </CardContent>
       </Card>
@@ -106,10 +98,10 @@ export function DashboardOverview() {
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">{macro.name}</span>
                 <span className="text-muted-foreground">
-                  {macroConsumedMap[macro.key]} g / {macro.target} g
+                  {formatGrams(macroConsumedMap[macro.key])} / {formatGrams(macro.target)}
                 </span>
               </div>
-              <Progress value={(macroConsumedMap[macro.key] / macro.target) * 100} />
+              <Progress value={calculateProgressPercent(macroConsumedMap[macro.key], macro.target)} />
             </div>
           ))}
         </CardContent>
@@ -129,7 +121,7 @@ export function DashboardOverview() {
                 <p className="font-medium">{meal.name}</p>
                 <p className="text-muted-foreground">{meal.time}</p>
               </div>
-              <p className="font-semibold">{meal.calories} kcal</p>
+              <p className="font-semibold">{formatCalories(meal.calories)}</p>
             </div>
           ))}
           {!meals.length && (
