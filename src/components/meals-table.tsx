@@ -1,6 +1,7 @@
-import { Clock3, Flame } from "lucide-react";
+import { Clock3, Flame, Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -10,13 +11,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { MealEntry } from "@/lib/mock-data";
+import type { MealEntry } from "@/lib/database.types";
 
 type MealsTableProps = {
   meals: MealEntry[];
+  onDelete?: (id: string) => void | Promise<void>;
 };
 
-export function MealsTable({ meals }: MealsTableProps) {
+export function MealsTable({ meals, onDelete }: MealsTableProps) {
   return (
     <Card>
       <CardHeader>
@@ -30,6 +32,7 @@ export function MealsTable({ meals }: MealsTableProps) {
               <TableHead>Godzina</TableHead>
               <TableHead>B/T/W</TableHead>
               <TableHead className="text-right">Kalorie</TableHead>
+              {onDelete && <TableHead className="w-10" />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -53,11 +56,24 @@ export function MealsTable({ meals }: MealsTableProps) {
                     {meal.calories}
                   </span>
                 </TableCell>
+                {onDelete && (
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => onDelete(meal.id)}
+                      title="Usun"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
             {!meals.length && (
               <TableRow>
-                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={onDelete ? 5 : 4} className="py-8 text-center text-muted-foreground">
                   Brak wpisow. Dodaj pierwszy posilek.
                 </TableCell>
               </TableRow>

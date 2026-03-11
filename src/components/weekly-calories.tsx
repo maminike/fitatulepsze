@@ -1,7 +1,18 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { weeklyCalories } from "@/lib/mock-data";
+import { fetchWeeklyCalories } from "@/lib/supabase/queries";
 
 export function WeeklyCalories() {
+  const [weeklyCalories, setWeeklyCalories] = useState<{ day: string; value: number }[]>(
+    () => [{ day: "Pon", value: 0 }, { day: "Wt", value: 0 }, { day: "Sr", value: 0 }, { day: "Czw", value: 0 }, { day: "Pt", value: 0 }, { day: "Sob", value: 0 }, { day: "Ndz", value: 0 }]
+  );
+
+  useEffect(() => {
+    fetchWeeklyCalories().then(setWeeklyCalories);
+  }, []);
+
   const maxValue = Math.max(...weeklyCalories.map((item) => item.value), 2300);
 
   return (

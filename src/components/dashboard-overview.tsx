@@ -1,17 +1,39 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import { Activity, Droplets, Flame, Footprints } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MealEntrySheet } from "@/components/meal-entry-sheet";
 import { Progress } from "@/components/ui/progress";
+import type { MealEntry } from "@/lib/database.types";
 import { calculateProgressPercent, formatCalories, formatGrams } from "@/lib/format-utils";
-import { dailySummary, macroSummary, todayMeals } from "@/lib/mock-data";
+import { dailySummary, macroSummary } from "@/lib/mock-data";
 import { calculateCaloriesLeft, calculateNutritionTotals } from "@/lib/nutrition-utils";
+import { fetchMealsForDate, insertMeal } from "@/lib/supabase/queries";
 
 export function DashboardOverview() {
-  const [meals, setMeals] = useState(todayMeals);
+  const [meals, setMeals] = useState<MealEntry[]>([]);
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  const loadMeals = useCallback(async () => {
+    const data = await fetchMealsForDate(today);
+    setMeals(data);
+  }, [today]);
+
+  useEffect(() => {
+    loadMeals();
+  }, [loadMeals]);
+
+  const handleAddMeal = useCallback(
+    async (meal: MealEntry) => {
+      const res = await insertMeal({ ...meal, date: today });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data) setMeals((prev) => [res.data!, ...prev]);
+    },
+    [today]
+  );
 
   const nutritionTotals = useMemo(() => calculateNutritionTotals(meals), [meals]);
 
@@ -45,7 +67,7 @@ export function DashboardOverview() {
             </div>
             <MealEntrySheet
               triggerLabel="Dodaj posilek"
-              onAdd={(meal) => setMeals((prev) => [meal, ...prev])}
+              onAdd={handleAddMeal}
             />
           </div>
           <Progress value={progressValue} />

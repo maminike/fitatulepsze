@@ -20,6 +20,14 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Supabase (baza danych + logowanie)
+
+1. Utwórz projekt na [supabase.com](https://supabase.com) i skopiuj URL oraz klucz anon z ustawień API.
+2. Skopiuj `.env.example` do `.env.local` i uzupełnij zmienne.
+3. W Supabase Dashboard → SQL Editor uruchom migrację z pliku `supabase/migrations/20250311000000_initial_schema.sql`.
+4. W Authentication → Providers upewnij się, że **Email** jest włączony. W trybie deweloperskim możesz wyłączyć „Confirm email” w ustawieniach Auth.
+5. Uruchom `npm run dev` i otwórz `/login` lub `/rejestracja`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import { CalendarDays } from "lucide-react";
 
 import { MealEntrySheet } from "@/components/meal-entry-sheet";
@@ -8,10 +9,39 @@ import { MealsTable } from "@/components/meals-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { macroSummary, todayMeals } from "@/lib/mock-data";
+import type { MealEntry } from "@/lib/database.types";
+import { deleteMeal, fetchMealsForDate, insertMeal } from "@/lib/supabase/queries";
+import { macroSummary } from "@/lib/mock-data";
 
 export default function DziennikPage() {
-  const [meals, setMeals] = useState(todayMeals);
+  const [meals, setMeals] = useState<MealEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const today = format(new Date(), "yyyy-MM-dd");
+
+  const loadMeals = useCallback(async () => {
+    setLoading(true);
+    const data = await fetchMealsForDate(today);
+    setMeals(data);
+    setLoading(false);
+  }, [today]);
+
+  useEffect(() => {
+    loadMeals();
+  }, [loadMeals]);
+
+  const handleAddMeal = useCallback(
+    async (meal: MealEntry) => {
+      const res = await insertMeal({ ...meal, date: today });
+      if (res.error) throw new Error(res.error.message);
+      if (res.data) setMeals((prev) => [res.data!, ...prev]);
+    },
+    [today]
+  );
+
+  const handleDeleteMeal = useCallback(async (id: string) => {
+    const res = await deleteMeal(id);
+    if (!res.error) setMeals((prev) => prev.filter((m) => m.id !== id));
+  }, []);
 
   const consumedProtein = useMemo(() => meals.reduce((sum, meal) => sum + meal.protein, 0), [meals]);
   const consumedCarbs = useMemo(() => meals.reduce((sum, meal) => sum + meal.carbs, 0), [meals]);
@@ -40,7 +70,7 @@ export default function DziennikPage() {
           <MealEntrySheet
             triggerLabel="Dodaj wpis"
             title="Dodaj wpis do dziennika"
-            onAdd={(meal) => setMeals((prev) => [meal, ...prev])}
+            onAdd={handleAddMeal}
           />
         </div>
       </div>
@@ -61,7 +91,11 @@ export default function DziennikPage() {
         </CardContent>
       </Card>
 
-      <MealsTable meals={meals} />
+      {loading ? (
+        <p className="text-muted-foreground">Ładowanie…</p>
+      ) : (
+        <MealsTable meals={meals} onDelete={handleDeleteMeal} />
+      )}
     </section>
   );
 }
