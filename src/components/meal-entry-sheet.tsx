@@ -13,6 +13,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { getCurrentTime } from "@/lib/date-time-utils";
 import type { MealEntry } from "@/lib/mock-data";
 
 type FormState = {
@@ -30,13 +31,6 @@ type MealEntrySheetProps = {
   triggerLabel: string;
   onAdd: (meal: MealEntry) => void;
 };
-
-function getCurrentTime() {
-  const date = new Date();
-  const hours = `${date.getHours()}`.padStart(2, "0");
-  const minutes = `${date.getMinutes()}`.padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
 
 function getDefaultForm(): FormState {
   return {
