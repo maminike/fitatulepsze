@@ -14,7 +14,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { getCurrentTime } from "@/lib/date-time-utils";
-import type { MealEntry } from "@/lib/mock-data";
+import type { MealEntry } from "@/lib/database.types";
 
 type FormState = {
   name: string;
@@ -29,7 +29,7 @@ type MealEntrySheetProps = {
   title?: string;
   description?: string;
   triggerLabel: string;
-  onAdd: (meal: MealEntry) => void;
+  onAdd: (meal: MealEntry) => void | Promise<void>;
 };
 
 function getDefaultForm(): FormState {
@@ -45,12 +45,14 @@ function getDefaultForm(): FormState {
 
 export function MealEntrySheet({
   title = "Dodaj posilek",
-  description = "Wpis zostanie dodany lokalnie (tylko w tej sesji).",
+  description = "Wpis zostanie zapisany w dzienniku.",
   triggerLabel,
   onAdd,
 }: MealEntrySheetProps) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(() => getDefaultForm());
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const isValid = useMemo(() => {
     return form.name.trim().length > 0 && form.time.trim().length > 0;
@@ -58,13 +60,17 @@ export function MealEntrySheet({
 
   const updateField = (key: keyof FormState, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setError(null);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!isValid) return;
 
-    onAdd({
+    setError(null);
+    setSaving(true);
+
+    const meal: MealEntry = {
       id: `meal-${Date.now()}`,
       name: form.name.trim(),
       time: form.time.trim(),
@@ -72,10 +78,17 @@ export function MealEntrySheet({
       protein: Number(form.protein) || 0,
       carbs: Number(form.carbs) || 0,
       fat: Number(form.fat) || 0,
-    });
+    };
 
-    setForm(getDefaultForm());
-    setOpen(false);
+    try {
+      await onAdd(meal);
+      setForm(getDefaultForm());
+      setOpen(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Nie udalo sie zapisac.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -130,8 +143,9 @@ export function MealEntrySheet({
               onChange={(event) => updateField("carbs", event.target.value)}
             />
           </div>
-          <Button type="submit" disabled={!isValid}>
-            Zapisz wpis
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={!isValid || saving}>
+            {saving ? "Zapisywanie…" : "Zapisz wpis"}
           </Button>
         </form>
       </SheetContent>

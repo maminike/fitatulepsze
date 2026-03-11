@@ -1,14 +1,55 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import type { ComponentType } from "react";
+import { format } from "date-fns";
 import { Dumbbell, Goal, MoonStar, Scale, UserRound } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { weightHistory } from "@/lib/mock-data";
+import type { WeightEntry } from "@/lib/database.types";
+import { fetchWeightHistory, insertWeight } from "@/lib/supabase/queries";
 
 export default function ProfilPage() {
+  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
+  const [weightDate, setWeightDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [weightValue, setWeightValue] = useState("");
+  const [weightError, setWeightError] = useState<string | null>(null);
+  const [weightSaving, setWeightSaving] = useState(false);
+
+  const loadWeight = useCallback(async () => {
+    const data = await fetchWeightHistory();
+    setWeightHistory(data);
+  }, []);
+
+  useEffect(() => {
+    loadWeight();
+  }, [loadWeight]);
+
+  async function handleAddWeight(e: FormEvent) {
+    e.preventDefault();
+    const w = parseFloat(weightValue.replace(",", "."));
+    if (isNaN(w) || w <= 0) {
+      setWeightError("Podaj poprawna wage (kg)");
+      return;
+    }
+    setWeightError(null);
+    setWeightSaving(true);
+    const res = await insertWeight(weightDate, w);
+    setWeightSaving(false);
+    if (res.error) {
+      setWeightError(res.error.message);
+      return;
+    }
+    setWeightValue("");
+    loadWeight();
+  }
+
   return (
     <section className="space-y-6">
       <div>
@@ -50,7 +91,31 @@ export default function ProfilPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <WeightChart />
+          <form onSubmit={handleAddWeight} className="flex flex-wrap items-end gap-3">
+            <div className="flex-1 min-w-[120px]">
+              <label className="mb-1 block text-xs text-muted-foreground">Data</label>
+              <Input
+                type="date"
+                value={weightDate}
+                onChange={(e) => setWeightDate(e.target.value)}
+              />
+            </div>
+            <div className="flex-1 min-w-[100px]">
+              <label className="mb-1 block text-xs text-muted-foreground">Waga (kg)</label>
+              <Input
+                type="text"
+                inputMode="decimal"
+                placeholder="np. 82.5"
+                value={weightValue}
+                onChange={(e) => setWeightValue(e.target.value)}
+              />
+            </div>
+            <Button type="submit" disabled={weightSaving}>
+              {weightSaving ? "Zapisywanie…" : "Dodaj pomiar"}
+            </Button>
+          </form>
+          {weightError && <p className="text-sm text-destructive">{weightError}</p>}
+          <WeightChart weightHistory={weightHistory} />
           <p className="text-xs text-muted-foreground">
             Ostatni pomiar: {weightHistory[weightHistory.length - 1]?.weight ?? "-"} kg
           </p>
@@ -60,11 +125,21 @@ export default function ProfilPage() {
   );
 }
 
-function WeightChart() {
+function WeightChart({ weightHistory }: { weightHistory: WeightEntry[] }) {
   const width = 560;
   const height = 180;
   const paddingX = 24;
   const paddingY = 20;
+
+  if (weightHistory.length === 0) {
+    return (
+      <div className="rounded-lg border p-3">
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Brak pomiarów. Zaloguj się i dodaj pierwszą wagę.
+        </p>
+      </div>
+    );
+  }
 
   const minWeight = Math.min(...weightHistory.map((item) => item.weight));
   const maxWeight = Math.max(...weightHistory.map((item) => item.weight));

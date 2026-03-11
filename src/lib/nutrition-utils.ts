@@ -1,4 +1,4 @@
-import type { MealEntry } from "@/lib/mock-data";
+import type { MealEntry } from "@/lib/database.types";
 
 export type NutritionTotals = {
   calories: number;
