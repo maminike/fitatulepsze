@@ -5,54 +5,54 @@ import {
 } from "@/lib/format-utils";
 
 describe("formatCalories", () => {
-  it("rounds and adds kcal suffix", () => {
+  it("zwraca zaokraglone kalorie z sufiksem kcal", () => {
     expect(formatCalories(123.6)).toBe("124 kcal");
   });
 
-  it("rounds down when decimal part is below .5", () => {
+  it("zaokragla w dół gdy część dziesiętna jest poniżej 0.5", () => {
     expect(formatCalories(123.4)).toBe("123 kcal");
   });
 
-  it("handles negative values", () => {
+  it("zwraca ujemne kalorie dla ujemnych wartości", () => {
     expect(formatCalories(-12.2)).toBe("-12 kcal");
   });
 });
 
 describe("formatGrams", () => {
-  it("formats with default precision and strips trailing zeroes", () => {
+  it("zwraca zaokraglone gramy z sufiksem g", () => {
     expect(formatGrams(12.0)).toBe("12 g");
     expect(formatGrams(12.34)).toBe("12.3 g");
   });
 
-  it("supports custom precision", () => {
+  it("zwraca gramy z określoną precyzją", () => {
     expect(formatGrams(12.34, 2)).toBe("12.34 g");
   });
 
-  it("supports zero precision", () => {
+  it("zaokragla do najbliższej liczby całkowitej dla precyzji 0", () => {
     expect(formatGrams(12.6, 0)).toBe("13 g");
   });
 
-  it("rounds small decimal values to one decimal by default", () => {
+  it("zaokragla małe wartości dziesiętne do jednego miejsca po przecinku domyślnie", () => {
     expect(formatGrams(0.05)).toBe("0.1 g");
   });
 });
 
 describe("calculateProgressPercent", () => {
-  it("calculates progress for a valid target", () => {
+  it("zwraca procent postępu dla poprawnego celu", () => {
     expect(calculateProgressPercent(50, 200)).toBe(25);
   });
 
-  it("clamps result to 0-100", () => {
+  it("ogranicza wynik do 0-100", () => {
     expect(calculateProgressPercent(300, 200)).toBe(100);
     expect(calculateProgressPercent(-20, 200)).toBe(0);
   });
 
-  it("returns 0 when target is zero or below", () => {
+  it("zwraca 0 gdy cel jest równy zero lub mniejszy", () => {
     expect(calculateProgressPercent(50, 0)).toBe(0);
     expect(calculateProgressPercent(50, -10)).toBe(0);
   });
 
-  it("returns decimal percentage for partial progress", () => {
+  it("zwraca procent dziesiętny dla częściowego postępu", () => {
     expect(calculateProgressPercent(25, 80)).toBeCloseTo(31.25);
   });
 });
