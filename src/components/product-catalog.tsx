@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,12 +31,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { ProductEntry } from "@/lib/database.types";
+import { products as seedCatalogProducts } from "@/lib/mock-data";
 import { fetchProducts, insertProduct } from "@/lib/supabase/queries";
 
 const categories = ["Wszystkie", "Nabial", "Mieso", "Warzywa", "Przekaski", "Napoje"] as const;
 const productCategories = ["Nabial", "Mieso", "Warzywa", "Przekaski", "Napoje"] as const;
 
 export function ProductCatalog() {
+  const searchParams = useSearchParams();
+  const e2eCatalog = searchParams.get("e2e") === "1";
+
   const [products, setProducts] = useState<ProductEntry[]>([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof categories)[number]>("Wszystkie");
@@ -53,9 +58,13 @@ export function ProductCatalog() {
   const [addSaving, setAddSaving] = useState(false);
 
   const loadProducts = useCallback(async () => {
+    if (e2eCatalog) {
+      setProducts([...seedCatalogProducts]);
+      return;
+    }
     const data = await fetchProducts();
     setProducts(data);
-  }, []);
+  }, [e2eCatalog]);
 
   useEffect(() => {
     loadProducts();
@@ -74,6 +83,23 @@ export function ProductCatalog() {
     const fat = parseFloat(addForm.fat.replace(",", ".")) || 0;
 
     setAddError(null);
+
+    if (e2eCatalog) {
+      const newProduct: ProductEntry = {
+        id: `e2e-${Date.now()}`,
+        name,
+        category: addForm.category,
+        calories,
+        protein,
+        carbs,
+        fat,
+      };
+      setProducts((prev) => [newProduct, ...prev]);
+      setAddForm({ name: "", category: "Nabial", calories: "", protein: "", carbs: "", fat: "" });
+      setAddOpen(false);
+      return;
+    }
+
     setAddSaving(true);
     const res = await insertProduct({
       name,

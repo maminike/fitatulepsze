@@ -7,8 +7,9 @@ BASE_URL = "http://localhost:3000"
 
 
 def go_to_products(page: Page) -> None:
-    page.goto(f"{BASE_URL}/produkty?e2e=1")
-    page.wait_for_load_state("networkidle")
+    page.goto(f"{BASE_URL}/produkty?e2e=1", wait_until="domcontentloaded", timeout=60_000)
+    page.wait_for_load_state("domcontentloaded")
+    page.locator('[data-testid^="product-row-"]').first.wait_for(state="visible", timeout=15_000)
 
 
 def test_1_load_produkty_page_and_verify_table_loads(page: Page):

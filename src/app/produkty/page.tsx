@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { ProductCatalog } from "@/components/product-catalog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -16,7 +18,9 @@ export default function ProduktyPage() {
           <CardTitle className="text-base">Katalog produktow</CardTitle>
         </CardHeader>
         <CardContent>
-          <ProductCatalog />
+          <Suspense fallback={<p className="text-sm text-muted-foreground">Ładowanie katalogu…</p>}>
+            <ProductCatalog />
+          </Suspense>
         </CardContent>
       </Card>
     </section>
