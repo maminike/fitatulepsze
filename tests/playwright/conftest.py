@@ -1,10 +1,9 @@
 """Pytest configuration and fixtures for Playwright tests."""
 
-import os
 import pytest
 
 
 @pytest.fixture(scope="session")
 def base_url() -> str:
-    """Return the base URL for the application."""
-    return os.getenv("BASE_URL", "http://localhost:3000")
+    """Adres dev-serwera Next (testy zakładają `npm run dev` na porcie 3000)."""
+    return "http://localhost:3000"
