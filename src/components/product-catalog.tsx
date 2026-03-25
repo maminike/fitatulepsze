@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,7 @@ export function ProductCatalog() {
   const [products, setProducts] = useState<ProductEntry[]>([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof categories)[number]>("Wszystkie");
+  const [sort, setSort] = useState<"name" | "calories">("name");
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({
     name: "",
@@ -94,13 +95,26 @@ export function ProductCatalog() {
     }
   }
 
+  const handleDeleteProduct = (productId: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+  };
+
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    let filtered = products.filter((product) => {
       const matchesQuery = product.name.toLowerCase().includes(query.toLowerCase().trim());
       const matchesCategory = category === "Wszystkie" || product.category === category;
       return matchesQuery && matchesCategory;
     });
-  }, [query, category]);
+
+    // Sort products
+    if (sort === "calories") {
+      filtered.sort((a, b) => a.calories - b.calories);
+    } else {
+      filtered.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    return filtered;
+  }, [query, category, sort, products]);
 
   return (
     <div className="space-y-4">
@@ -108,6 +122,7 @@ export function ProductCatalog() {
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            data-testid="product-search-input"
             placeholder="Szukaj produktu..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -116,7 +131,7 @@ export function ProductCatalog() {
         </div>
 
         <Select value={category} onValueChange={(value) => setCategory(value as (typeof categories)[number])}>
-          <SelectTrigger className="w-full sm:w-52">
+          <SelectTrigger data-testid="category-filter" className="w-full sm:w-52">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -128,9 +143,19 @@ export function ProductCatalog() {
           </SelectContent>
         </Select>
 
+        <Select value={sort} onValueChange={(value) => setSort(value as "name" | "calories")}>
+          <SelectTrigger data-testid="sort-dropdown" className="w-full sm:w-52">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="name">Nazwa</SelectItem>
+            <SelectItem value="calories">Kalorie</SelectItem>
+          </SelectContent>
+        </Select>
+
         <Sheet open={addOpen} onOpenChange={setAddOpen}>
           <SheetTrigger asChild>
-            <Button className="gap-2">
+            <Button data-testid="add-product-button" className="gap-2">
               <Plus className="size-4" />
               Dodaj produkt
             </Button>
@@ -144,6 +169,7 @@ export function ProductCatalog() {
               <div>
                 <label className="mb-1 block text-sm font-medium">Nazwa</label>
                 <Input
+                  data-testid="product-name-input"
                   placeholder="np. Jogurt naturalny"
                   value={addForm.name}
                   onChange={(e) => setAddForm((p) => ({ ...p, name: e.target.value }))}
@@ -155,7 +181,7 @@ export function ProductCatalog() {
                   value={addForm.category}
                   onValueChange={(v) => setAddForm((p) => ({ ...p, category: v as (typeof productCategories)[number] }))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger data-testid="product-category-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -168,6 +194,7 @@ export function ProductCatalog() {
               <div>
                 <label className="mb-1 block text-sm font-medium">Kalorie (na 100g)</label>
                 <Input
+                  data-testid="product-calories-input"
                   type="number"
                   min="0"
                   step="0.1"
@@ -180,6 +207,7 @@ export function ProductCatalog() {
                 <div>
                   <label className="mb-1 block text-xs font-medium">Bialko</label>
                   <Input
+                    data-testid="product-protein-input"
                     type="number"
                     min="0"
                     step="0.1"
@@ -191,6 +219,7 @@ export function ProductCatalog() {
                 <div>
                   <label className="mb-1 block text-xs font-medium">Tluscze</label>
                   <Input
+                    data-testid="product-fat-input"
                     type="number"
                     min="0"
                     step="0.1"
@@ -202,6 +231,7 @@ export function ProductCatalog() {
                 <div>
                   <label className="mb-1 block text-xs font-medium">Wegle</label>
                   <Input
+                    data-testid="product-carbs-input"
                     type="number"
                     min="0"
                     step="0.1"
@@ -212,7 +242,7 @@ export function ProductCatalog() {
                 </div>
               </div>
               {addError && <p className="text-sm text-destructive">{addError}</p>}
-              <Button type="submit" disabled={addSaving}>
+              <Button data-testid="product-submit-button" type="submit" disabled={addSaving}>
                 {addSaving ? "Zapisywanie…" : "Dodaj produkt"}
               </Button>
             </form>
@@ -230,17 +260,29 @@ export function ProductCatalog() {
               <TableHead className="text-right">B</TableHead>
               <TableHead className="text-right">T</TableHead>
               <TableHead className="text-right">W</TableHead>
+              <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredProducts.map((product) => (
-              <TableRow key={product.id}>
+              <TableRow key={product.id} data-testid={`product-row-${product.id}`}>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell>{product.category}</TableCell>
                 <TableCell className="text-right">{product.calories}</TableCell>
                 <TableCell className="text-right">{product.protein}</TableCell>
                 <TableCell className="text-right">{product.fat}</TableCell>
                 <TableCell className="text-right">{product.carbs}</TableCell>
+                <TableCell className="text-center">
+                  <Button
+                    data-testid={`delete-product-${product.id}`}
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => handleDeleteProduct(product.id)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
