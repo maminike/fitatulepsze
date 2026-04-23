@@ -104,7 +104,7 @@ export function MealEntrySheet({
 
         <form onSubmit={handleSubmit} className="grid gap-3 p-4">
           <Input
-            placeholder="Nazwa posilku"
+            placeholder="Szukaj posiłku..."
             value={form.name}
             onChange={(event) => updateField("name", event.target.value)}
           />

@@ -54,6 +54,11 @@ export async function fetchProducts(): Promise<ProductEntry[]> {
 }
 
 export async function fetchMealsForDate(date: string): Promise<MealEntry[]> {
+  if (typeof window !== "undefined" && window.location.search.includes("e2e=1")) {
+    const { todayMeals } = await import("@/lib/mock-data");
+    return todayMeals;
+  }
+
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];

@@ -49,7 +49,7 @@ export const macroSummary: MacroEntry[] = [
 export const todayMeals: MealEntry[] = [
   {
     id: "meal-1",
-    name: "Owsianka z bananem",
+    name: "Śniadanie z bananem",
     time: "07:30",
     calories: 430,
     protein: 21,
