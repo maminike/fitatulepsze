@@ -42,3 +42,31 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Uruchamianie testów automatycznych (AiTSI)
+
+Projekt wykorzystuje framework Pytest wraz z wtyczk Playwright do automatyzacji E2E, mockowania oraz testów API.
+
+### Wymagania
+1. Zainstalowany Python 3.10+
+2. (Opcjonalnie) rodowisko wirtualne venv
+
+### Instalacja
+```bash
+pip install -r tests/playwright/requirements.txt
+playwright install chromium
+```
+
+### Jak uruchomi wszystkie testy Playwright
+Upewnij si, e lokalny serwer aplikacji (Next.js) jest wczony w tle na porcie 3000 (
+pm run dev). Nastpnie wywoaj z gównego folderu polecenie:
+```bash
+pytest tests/playwright/
+```
+
+Alternatywnie aby uruchomi testy uwierzytelniania w trybie widocznym (UI):
+```bash
+pytest tests/playwright/test_auth_state.py --headed
+```
+
