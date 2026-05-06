@@ -5,9 +5,9 @@
 Wyróżnia się prostym w użyciu interfejsem stworzonym w oparciu o Next.js, logowaniem Supabase oraz estetycznymi wykresami.
 
 ### Skład zespołu
-- **maminikie** (Lider)
+- **maminikie** 
 - **tamatama**
-- **hamikyu**
+- **hamikyu** (Lider)
 
 ### Podział odpowiedzialności (Testy)
 Zgodnie z wymogami projektu, każdy z członków zespołu zaimplementował wymaganą serię testów automatycznych. Szczegóły znajdują się w katalogu `tests/playwright/`:
