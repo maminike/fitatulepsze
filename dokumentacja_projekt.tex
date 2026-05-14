@@ -1,0 +1,223 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{parskip}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning}
+
+\geometry{
+    a4paper,
+    left=25mm,
+    right=25mm,
+    top=25mm,
+    bottom=25mm
+}
+
+\definecolor{primary}{HTML}{2B6CB0}
+
+\titleformat{\section}{\Large\bfseries\color{primary}}{\thesection.}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection.}{1em}{}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    
+    {\Huge \bfseries Analiza i testowanie systemów informatycznych \par}
+    \vspace{1.5cm}
+    {\Large \bfseries Raport z analizy architektury projektu \par}
+    \vspace{0.5cm}
+    {\large FitatuLepsze \par}
+    
+    \vspace{3cm}
+    
+    \begin{flushleft}
+    \Large
+    \textbf{Autorzy:}\\
+    Michał Dąbrowski\\
+    Dominik Zabielski\\
+    Kacper Mamiński\\[1.5cm]
+    
+    \textbf{Prowadzący zajęcia:}\\
+    Piotr Magnuszewski
+    \end{flushleft}
+    
+    \vfill
+    
+    {\large \today \par}
+\end{titlepage}
+
+\section{Zadanie 1: Ocena stanu kodu - BBoM (Big Ball of Mud)}
+
+\subsection{Ocena ogólna}
+Po przeprowadzeniu analizy obecnego stanu kodu projektu (FitatuLepsze), stwierdzamy, że system znajduje się na granicy przejścia w tzw. \textit{Big Ball of Mud}. Chociaż podział na foldery (\texttt{app}, \texttt{components}, \texttt{lib}, \texttt{supabase}) jest zauważalny dzięki zastosowaniu frameworka Next.js, wewnętrzna struktura zaczyna wykazywać oznaki wczesnego "spaghetti zależności".
+
+Komponenty odpowiadające za warstwę wizualną są w kilku miejscach mocno sprzężone z logiką pobierania danych z bazy (Supabase) oraz logiką domenową. Brak wyraźnie wydzielonych interfejsów i warstwy usług sprawia, że zmiany w sposobie agregacji danych mogą lawinowo wpływać na komponenty UI.
+
+\subsection{Elementy do poprawy (minimum 3)}
+\begin{enumerate}
+    \item \textbf{Silne sprzężenie UI z logiką dostępu do bazy (Supabase):} Logika autoryzacji i bezpośrednie wywołania bazy danych znajdują się zbyt blisko komponentów React (np. w katalogu \texttt{components/postep}). Konieczne jest wydzielenie warstwy repozytorium/usług.
+    \item \textbf{Rozproszona struktura typów (Types):} Typowanie danych z bazy (\texttt{database.types.ts}) nie jest jednoznacznie powiązane z modelami domenowymi na frontendzie, co w przypadku ewolucji schematu bazy danych doprowadzi do błędów na poziomie widoków.
+    \item \textbf{Brak hermetyzacji domeny (anemic domain):} Funkcje pomocnicze (\texttt{nutrition-utils.ts}, \texttt{progress-utils.ts}) to wolnostojące "narzędzia" (utils) zamiast pełnoprawnych obiektów domenowych posiadających stan i reguły walidacji (np. Pilnowanie limitu kalorii i makroskładników).
+\end{enumerate}
+
+\section{Zadanie 2: Podział projektu na subdomeny}
+
+Dokonano analizy problemu biznesowego i podzielono system na następujące subdomeny zgodnie z logiką Domain-Driven Design (DDD):
+
+\begin{itemize}
+    \item \textbf{Core (Subdomena Główna):} 
+    \begin{itemize}
+        \item \textit{Dziennik Posiłków (Meal Tracking)} -- Dodawanie, edycja i usuwanie zjedzonych produktów/posiłków.
+        \item \textit{Analiza Progresu i Odżywiania (Nutrition \& Progress)} -- Zliczanie kalorii, makroskładników, budowa "streaków" oraz porównywanie z założonym celem. To tu aplikacja dostarcza największą wartość dodaną względem konkurencji.
+    \end{itemize}
+    
+    \item \textbf{Supporting (Subdomena Wspierająca):}
+    \begin{itemize}
+        \item \textit{Katalog Produktów (Product Catalog)} -- Baza danych o produktach, skanowanie lub wyszukiwanie (wartości odżywcze produktów bazowych).
+        \item \textit{Profil Użytkownika (User Profile)} -- Ustawienia celów makro, waga, płeć, wiek.
+    \end{itemize}
+    
+    \item \textbf{Generic (Subdomena Zwykła):}
+    \begin{itemize}
+        \item \textit{Autoryzacja i Tożsamość (Identity \& Access)} -- Rejestracja, logowanie, sesje (realizowane m.in. przy pomocy gotowego rozwiązania Supabase).
+    \end{itemize}
+\end{itemize}
+
+\section{Zadanie 3: Bounded Contexts i Ubiquitous Language}
+
+Wyznaczono dwa główne Bounded Contexty. Ze względu na fakt łączenia obsługi aplikacji wokół dziennika vs konta, podział języka jest istotny.
+
+\subsection{Bounded Context 1: Meal Tracking (Dziennik Odżywiania)}
+Zajmuje się logiką spożywanych produktów danego dnia, kalkulacją dziennych makroskładników i kalorii.
+
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|}
+        \hline
+        \textbf{Pojęcie} & \textbf{Znaczenie w tym kontekście} \\
+        \hline
+        Wpis (Entry) & Zarejestrowanie faktu zjedzenia danego produktu przez użytkownika w konkretnym dniu. \\
+        \hline
+        Produkt (Product) & Informacja o makroskładnikach na określoną jednostkę (np. 100g). Zmiany w produkcie nie powinny zmieniać historycznych wpisów. \\
+        \hline
+        Progres (Progress) & Stopień realizacji dziennego celu kalorii i makroskładników dla podsumowania dnia. \\
+        \hline
+        Makro (Macros) & Proporcje węglowodanów, białka i tłuszczu. \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\subsection{Bounded Context 2: User Account (Konto i Cele)}
+Odpowiada za użytkownika w systemie, jego autoryzację i globalne cykle.
+
+\begin{table}[H]
+    \centering
+    \begin{tabularx}{\textwidth}{|l|X|}
+        \hline
+        \textbf{Pojęcie} & \textbf{Znaczenie w tym kontekście} \\
+        \hline
+        Użytkownik (User) & Osoba posiadająca konto w aplikacji. Tutaj interesuje nas jej tożsamość, hasło (hash) i e-mail. \\
+        \hline
+        Cel (Goal) & Globalnie skonfigurowany limit kalorii i makro na dany okres (np. Dieta redukcyjna 2000 kcal). \\
+        \hline
+        Sesja (Session) & Aktywny token dostępny na urządzeniach użytkownika. \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\section{Zadanie 4: Model C4 (Context i Container)}
+
+Poniżej przedstawiono wizualizację obecnego i docelowego stanu systemu przy pomocy diagramów zgodnych z modelem C4.
+
+\subsection{System C4: Poziom Context (Kontekst Systemu)}
+
+Diagram kontekstu ukazuje podstawowe zależności pomiędzy Użytkownikiem, naszym systemem FitatuLepsze a zewnętrznym dostawcą usług backendowych.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm and 3.5cm,
+    actor/.style={rectangle, draw=black, fill=blue!20, minimum width=3cm, minimum height=1.5cm, align=center, text=black, font=\small},
+    system/.style={rectangle, draw=black, fill=blue!60, text=white, minimum width=4cm, minimum height=2cm, align=center, font=\bfseries},
+    external/.style={rectangle, draw=black, fill=gray!40, text=black, minimum width=4cm, minimum height=2cm, align=center, font=\small},
+    arrow/.style={thick,->,>=stealth}
+]
+
+    % Nodes
+    \node (user) [actor] {Użytkownik};
+    \node (fitatu) [system, right=of user] {FitatuLepsze\\(Software System)};
+    \node (supabase) [external, right=of fitatu] {Supabase\\(Zewnętrzna Usługa/Baza)};
+
+    % Arrows
+    \draw [arrow] (user) -- node[midway, above=0.1cm, align=center, font=\footnotesize, text width=3cm] {Śledzi dietę, dodaje posiłki} (fitatu);
+    \draw [arrow] (fitatu) -- node[midway, above=0.1cm, align=center, font=\footnotesize, text width=3cm] {Pobiera dane, autoryzacja} (supabase);
+
+\end{tikzpicture}
+\caption{Diagram Kontekstu (Context) – Stan Obecny i Docelowy}
+\end{figure}
+
+\subsection{System C4: Poziom Container (Kontenery) – Stan Obecny (BBoM)}
+
+Kluczowym problemem w obecnej architekturze jest bezpośrednie odpytywanie bazy danych i API Supabase przez komponenty na frontendzie, bez solidnej separacji logiki.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm and 3.5cm,
+    actor/.style={rectangle, draw=black, fill=blue!20, minimum width=3cm, minimum height=1.5cm, align=center, text=black, font=\small},
+    container/.style={rectangle, draw=black, fill=blue!50, text=white, minimum width=3.5cm, minimum height=2cm, align=center, font=\footnotesize\bfseries},
+    db/.style={cylinder, shape border rotate=90, aspect=0.25, draw=black, fill=gray!40, text=black, minimum width=3cm, minimum height=2cm, align=center, font=\footnotesize},
+    arrow/.style={thick,->,>=stealth, dashed, draw=red}
+]
+
+    \node (user) [actor] {Użytkownik};
+    \node (webapp) [container, right=of user] {Web Application\\(Next.js / UI)};
+    \node (supabase) [db, right=of webapp] {Supabase DB\\(PostgreSQL)};
+
+    \draw [thick,->,>=stealth] (user) -- node[midway, above=0.1cm, align=center, font=\scriptsize, text width=2.5cm] {Interakcja HTTPS} (webapp);
+    \draw [arrow] (webapp) -- node[midway, above=0.1cm, align=center, font=\scriptsize, text=red, text width=2.5cm] {Silne sprzężenie (bezpośrednie SDK)} (supabase);
+    \draw [arrow] (webapp) to[out=45,in=135] node[midway, above=0.1cm, align=center, font=\scriptsize, text=red, text width=3cm] {Brak warstwy pośredniej API} (supabase);
+
+\end{tikzpicture}
+\caption{Diagram Kontenerów (Container) – Stan Obecny z elementami spaghetti zależności}
+\end{figure}
+
+\subsection{System C4: Poziom Container (Kontenery) – Stan Docelowy}
+
+W stanie docelowym aplikacja \textit{Web UI} komunikuje się za pośrednictwem czysto serwerowej i zhermetyzowanej aplikacji API, która obsługuje integrację z zewnętrznymi serwisami.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    node distance=2cm and 3.5cm,
+    actor/.style={rectangle, draw=black, fill=blue!20, minimum width=2.5cm, minimum height=1.5cm, align=center, text=black, font=\small},
+    container/.style={rectangle, draw=black, fill=blue!50, text=white, minimum width=3.2cm, minimum height=2cm, align=center, font=\footnotesize\bfseries},
+    api/.style={rectangle, draw=black, fill=blue!80, text=white, minimum width=3.2cm, minimum height=2cm, align=center, font=\footnotesize\bfseries},
+    db/.style={cylinder, shape border rotate=90, aspect=0.25, draw=black, fill=gray!40, text=black, minimum width=2.8cm, minimum height=2cm, align=center, font=\footnotesize},
+    arrow/.style={thick,->,>=stealth}
+]
+
+    \node (user) [actor] {Użytkownik};
+    \node (webapp) [container, right=of user] {Web UI\\(React Client)};
+    \node (api_app) [api, right=of webapp] {API Logic\\(Next.js Server)};
+    \node (supabase) [db, right=of api_app] {Supabase Auth \& DB};
+
+    \draw [arrow] (user) -- node[midway, above=0.1cm, align=center, font=\scriptsize, text width=2.2cm] {Wyświetla widoki} (webapp);
+    \draw [arrow] (webapp) -- node[midway, above=0.1cm, align=center, font=\scriptsize, text width=2.2cm] {API Calls (JSON)} (api_app);
+    \draw [arrow] (api_app) -- node[midway, above=0.1cm, align=center, font=\scriptsize, text width=2.2cm] {Zhermetyzowany odczyt i zapis} (supabase);
+
+\end{tikzpicture}
+\caption{Diagram Kontenerów (Container) – Architektura Docelowa}
+\end{figure}
+
+\end{document}
