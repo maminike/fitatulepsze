@@ -1,36 +1,5 @@
-export type MacroKey = "protein" | "carbs" | "fat";
-
-export type MacroEntry = {
-  name: string;
-  key: MacroKey;
-  target: number;
-  consumed: number;
-};
-
-export type MealEntry = {
-  id: string;
-  name: string;
-  time: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-};
-
-export type ProductEntry = {
-  id: string;
-  name: string;
-  category: "Nabial" | "Mieso" | "Warzywa" | "Przekaski" | "Napoje";
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-};
-
-export type WeightEntry = {
-  date: string;
-  weight: number;
-};
+import type { MacroEntry, MealEntry, ProductEntry, WeightEntry } from "@/lib/database.types";
+import { MACRO_TARGETS } from "@/lib/domain-constants";
 
 export const dailySummary = {
   goal: 2300,
@@ -41,9 +10,9 @@ export const dailySummary = {
 };
 
 export const macroSummary: MacroEntry[] = [
-  { name: "Bialko", key: "protein", target: 160, consumed: 122 },
-  { name: "Wegle", key: "carbs", target: 240, consumed: 153 },
-  { name: "Tluscze", key: "fat", target: 75, consumed: 58 },
+  { name: "Bialko", key: "protein", target: MACRO_TARGETS.protein, consumed: 122 },
+  { name: "Wegle", key: "carbs", target: MACRO_TARGETS.carbs, consumed: 153 },
+  { name: "Tluscze", key: "fat", target: MACRO_TARGETS.fat, consumed: 58 },
 ];
 
 export const todayMeals: MealEntry[] = [

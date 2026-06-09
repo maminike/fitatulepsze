@@ -26,7 +26,9 @@ import { ProgressStreakCard } from "@/components/postep/progress-streak-card";
 import { ProgressWeeklyGoalCard } from "@/components/postep/progress-weekly-goal-card";
 import { calculateNutritionTotals } from "@/lib/nutrition-utils";
 import { fetchMealsForDate, fetchWeeklyCalories, fetchWeightHistory } from "@/lib/supabase/queries";
-const GOAL = 2300;
+import { DEFAULT_DAILY_CALORIE_GOAL } from "@/lib/domain-constants";
+const GOAL = DEFAULT_DAILY_CALORIE_GOAL;
+
 
 export default function PostepPage() {
   const [weeklyCalories, setWeeklyCalories] = useState<{ day: string; value: number }[]>(

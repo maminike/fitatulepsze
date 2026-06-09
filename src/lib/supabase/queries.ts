@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/client";
 import type { MealEntry, ProductEntry, WeightEntry } from "@/lib/database.types";
+import type { ICaloriesRepository, IMealRepository, IProductRepository, IWeightRepository } from "@/lib/ports";
 
 export async function insertProduct(product: Omit<ProductEntry, "id">) {
   const supabase = createClient();
@@ -192,3 +193,23 @@ export async function fetchWeeklyCalories(): Promise<{ day: string; value: numbe
     value: byDay[DAY_INDEX[i]] ?? 0,
   }));
 }
+
+export const mealRepository: IMealRepository = {
+  fetchForDate: fetchMealsForDate,
+  insert: insertMeal,
+  delete: deleteMeal,
+};
+
+export const productRepository: IProductRepository = {
+  fetchAll: fetchProducts,
+  insert: insertProduct,
+};
+
+export const weightRepository: IWeightRepository = {
+  fetchHistory: fetchWeightHistory,
+  upsert: insertWeight,
+};
+
+export const caloriesRepository: ICaloriesRepository = {
+  fetchWeekly: fetchWeeklyCalories,
+};
